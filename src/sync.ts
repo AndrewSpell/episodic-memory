@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { StringDecoder } from 'string_decoder';
 import { SUMMARIZER_CONTEXT_MARKER } from './constants.js';
-import { getExcludedProjects, findJsonlFiles, statIfExists } from './paths.js';
+import { getExcludedProjects, findJsonlFiles, statIfExists, projectFromTranscriptPath } from './paths.js';
 import { formatErrorSentinel, shouldQueueForSummary } from './summary-sentinel.js';
 import { getMaxMessageBytes, isOversizeExchange } from './message-size.js';
 
@@ -309,7 +309,7 @@ export async function syncConversations(
           ).get(file) as { maxLine: number };
           const maxIndexedLine = hw.maxLine;
 
-          const project = path.basename(path.dirname(file));
+          const project = projectFromTranscriptPath(file);
           const exchanges = await parseConversation(file, project, file);
           const newExchanges = maxIndexedLine > 0
             ? exchanges.filter(e => e.lineStart > maxIndexedLine)
@@ -384,7 +384,7 @@ export async function syncConversations(
       }
 
       try {
-        const project = path.basename(path.dirname(filePath));
+        const project = projectFromTranscriptPath(filePath);
         const exchanges = await parseConversation(filePath, project, filePath);
 
         if (exchanges.length === 0) {

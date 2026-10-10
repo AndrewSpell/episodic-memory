@@ -62,6 +62,14 @@ export declare function getConversationSourceDirs(only?: ConversationSourceHarne
  */
 export declare function findJsonlFiles(dir: string, excludedDirNames?: ReadonlySet<string>): string[];
 /**
+ * Project name for a transcript: the directory it sits in. Claude Code keeps
+ * subagent transcripts at <project>/<session>/subagents/agent-*.jsonl, so for
+ * those the project is two directories further up. Both the directory and the
+ * agent- prefix must match, so a project that is itself named "subagents"
+ * keeps its name.
+ */
+export declare function projectFromTranscriptPath(filePath: string): string;
+/**
  * statSync that follows symlinks but returns null instead of throwing when
  * the entry cannot be stat'ed — a dangling symlink (e.g. left behind by a
  * storage migration), or an entry deleted between readdir and stat.

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { StringDecoder } from 'string_decoder';
 import { SUMMARIZER_CONTEXT_MARKER } from './constants.js';
-import { getExcludedProjects, findJsonlFiles, statIfExists } from './paths.js';
+import { getExcludedProjects, findJsonlFiles, statIfExists, projectFromTranscriptPath } from './paths.js';
 import { formatErrorSentinel, shouldQueueForSummary } from './summary-sentinel.js';
 import { getMaxMessageBytes, isOversizeExchange } from './message-size.js';
 const EXCLUSION_MARKERS = [
@@ -271,7 +271,7 @@ export async function syncConversations(sourceDir, destDir, options = {}) {
                     // every exchange on every sync (#152). Ported from indexer.ts.
                     const hw = db.prepare('SELECT COALESCE(MAX(line_end), 0) as maxLine FROM exchanges WHERE archive_path = ?').get(file);
                     const maxIndexedLine = hw.maxLine;
-                    const project = path.basename(path.dirname(file));
+                    const project = projectFromTranscriptPath(file);
                     const exchanges = await parseConversation(file, project, file);
                     const newExchanges = maxIndexedLine > 0
                         ? exchanges.filter(e => e.lineStart > maxIndexedLine)
@@ -334,7 +334,7 @@ export async function syncConversations(sourceDir, destDir, options = {}) {
                 continue;
             }
             try {
-                const project = path.basename(path.dirname(filePath));
+                const project = projectFromTranscriptPath(filePath);
                 const exchanges = await parseConversation(filePath, project, filePath);
                 if (exchanges.length === 0) {
                     // Skip empty conversations — write an empty -summary.txt sentinel so they aren't re-queued forever

@@ -2,6 +2,7 @@ import fs from 'fs';
 import readline from 'readline';
 import path from 'path';
 import { ConversationExchange, ConversationHarness, ToolCall } from './types.js';
+import { projectFromTranscriptPath } from './paths.js';
 import crypto from 'crypto';
 
 interface JSONLMessage {
@@ -1384,11 +1385,7 @@ export async function parseConversationFile(filePath: string): Promise<{
   project: string;
   exchanges: ConversationExchange[];
 }> {
-  // Extract project name from path (directory name before the .jsonl file).
-  // path.dirname uses the platform's separators, so Windows paths with `\` work too.
-  const parentDir = path.basename(path.dirname(filePath));
-  const project = parentDir && parentDir !== '.' ? parentDir : 'unknown';
-
+  const project = projectFromTranscriptPath(filePath);
   const exchanges = await parseConversation(filePath, project, filePath);
 
   return {

@@ -30264,6 +30264,14 @@ function ensureDir(dir) {
   }
   return dir;
 }
+function projectFromTranscriptPath(filePath) {
+  let dir = path.dirname(filePath);
+  if (path.basename(dir) === "subagents" && path.basename(filePath).startsWith("agent-")) {
+    dir = path.dirname(path.dirname(dir));
+  }
+  const name = path.basename(dir);
+  return name && name !== "." ? name : "unknown";
+}
 function getSuperpowersDir() {
   let dir;
   if (process.env.EPISODIC_MEMORY_CONFIG_DIR) {
@@ -30337,6 +30345,19 @@ function migrateSchema(db) {
     console.log("Migration complete.");
   }
   migrateToolCallsCascade(db);
+  migrateSubagentProjects(db);
+}
+function migrateSubagentProjects(db) {
+  const rows = db.prepare(
+    `SELECT DISTINCT archive_path FROM exchanges WHERE project = 'subagents'`
+  ).all();
+  const update = db.prepare(`UPDATE exchanges SET project = ? WHERE archive_path = ?`);
+  const fixes = rows.map((r) => ({ path: r.archive_path, project: projectFromTranscriptPath(r.archive_path) })).filter((f) => f.project !== "subagents");
+  if (fixes.length === 0) return;
+  console.log(`Migrating ${fixes.length} subagent transcript(s) out of the "subagents" project...`);
+  db.transaction(() => {
+    for (const f of fixes) update.run(f.project, f.path);
+  })();
 }
 function migrateToolCallsCascade(db) {
   const row = db.prepare(

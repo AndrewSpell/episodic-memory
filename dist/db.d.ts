@@ -2,6 +2,14 @@ import Database from 'better-sqlite3';
 import { ConversationExchange } from './types.js';
 export declare function migrateSchema(db: Database.Database): void;
 /**
+ * Earlier versions took a transcript's parent directory as its project, so
+ * every subagent transcript (<project>/<session>/subagents/agent-*.jsonl) was
+ * indexed under the project "subagents". Re-derive the project for those rows.
+ * Rows from a real project named "subagents" derive to the same name and are
+ * left as they are, so this is safe to run on every startup.
+ */
+export declare function migrateSubagentProjects(db: Database.Database): void;
+/**
  * Earlier versions created `tool_calls` with a plain
  * `FOREIGN KEY (exchange_id) REFERENCES exchanges(id)`.
  * Without ON DELETE CASCADE, deleting an exchange that had tool calls

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import readline from 'readline';
 import path from 'path';
+import { projectFromTranscriptPath } from './paths.js';
 import crypto from 'crypto';
 async function detectConversationHarness(filePath) {
     const fileStream = fs.createReadStream(filePath);
@@ -1154,10 +1155,7 @@ async function parseCursorConversation(filePath, projectName, archivePath) {
  * Extracts project name from the file path and returns exchanges with metadata
  */
 export async function parseConversationFile(filePath) {
-    // Extract project name from path (directory name before the .jsonl file).
-    // path.dirname uses the platform's separators, so Windows paths with `\` work too.
-    const parentDir = path.basename(path.dirname(filePath));
-    const project = parentDir && parentDir !== '.' ? parentDir : 'unknown';
+    const project = projectFromTranscriptPath(filePath);
     const exchanges = await parseConversation(filePath, project, filePath);
     return {
         project,
