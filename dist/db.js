@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import * as sqliteVec from 'sqlite-vec';
-import { getDbPath } from './paths.js';
+import { getDbPath, projectFromTranscriptPath } from './paths.js';
 import { EMBEDDING_VERSION } from './embedding-migration.js';
 export function migrateSchema(db) {
     const columns = db.prepare(`SELECT name FROM pragma_table_info('exchanges')`).all();
@@ -36,6 +36,28 @@ export function migrateSchema(db) {
         console.log('Migration complete.');
     }
     migrateToolCallsCascade(db);
+    migrateSubagentProjects(db);
+}
+/**
+ * Earlier versions took a transcript's parent directory as its project, so
+ * every subagent transcript (<project>/<session>/subagents/agent-*.jsonl) was
+ * indexed under the project "subagents". Re-derive the project for those rows.
+ * Rows from a real project named "subagents" derive to the same name and are
+ * left as they are, so this is safe to run on every startup.
+ */
+export function migrateSubagentProjects(db) {
+    const rows = db.prepare(`SELECT DISTINCT archive_path FROM exchanges WHERE project = 'subagents'`).all();
+    const update = db.prepare(`UPDATE exchanges SET project = ? WHERE archive_path = ?`);
+    const fixes = rows
+        .map(r => ({ path: r.archive_path, project: projectFromTranscriptPath(r.archive_path) }))
+        .filter(f => f.project !== 'subagents');
+    if (fixes.length === 0)
+        return;
+    console.log(`Migrating ${fixes.length} subagent transcript(s) out of the "subagents" project...`);
+    db.transaction(() => {
+        for (const f of fixes)
+            update.run(f.project, f.path);
+    })();
 }
 /**
  * Earlier versions created `tool_calls` with a plain
